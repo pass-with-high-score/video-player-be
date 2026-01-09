@@ -3,7 +3,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { redisStore } from 'cache-manager-ioredis-yet';
 
 import { AuthModule } from './modules/auth/auth.module';
@@ -47,6 +48,8 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
         store: await redisStore({
           host: configService.get<string>('REDIS_HOST'),
           port: configService.get<number>('REDIS_PORT'),
+          password: configService.get<string>('REDIS_PASSWORD'),
+          username: configService.get<string>('REDIS_USERNAME'),
         }),
         ttl: 60000, // 1 minute default
       }),
@@ -68,6 +71,10 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
     CommentsModule,
   ],
   providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
+    },
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
