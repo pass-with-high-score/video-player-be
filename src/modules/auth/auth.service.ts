@@ -17,6 +17,12 @@ export interface JwtPayload {
 export interface TokenResponse {
     accessToken: string;
     refreshToken: string;
+    user: {
+        id: string;
+        username: string;
+        email: string;
+        createdAt: Date;
+    };
 }
 
 @Injectable()
@@ -51,7 +57,7 @@ export class AuthService {
             passwordHash,
         });
 
-        return this.generateTokens(user.id, user.email);
+        return this.generateTokens(user);
     }
 
     async login(loginDto: LoginDto): Promise<TokenResponse> {
@@ -67,7 +73,7 @@ export class AuthService {
             throw new UnauthorizedException('Invalid credentials');
         }
 
-        return this.generateTokens(user.id, user.email);
+        return this.generateTokens(user);
     }
 
     async refreshToken(refreshToken: string): Promise<TokenResponse> {
@@ -81,14 +87,14 @@ export class AuthService {
                 throw new UnauthorizedException('User not found');
             }
 
-            return this.generateTokens(user.id, user.email);
+            return this.generateTokens(user);
         } catch {
             throw new UnauthorizedException('Invalid refresh token');
         }
     }
 
-    private generateTokens(userId: string, email: string): TokenResponse {
-        const payload: JwtPayload = { sub: userId, email };
+    private generateTokens(user: { id: string; username: string; email: string; createdAt: Date }): TokenResponse {
+        const payload: JwtPayload = { sub: user.id, email: user.email };
 
         const accessToken = this.jwtService.sign(payload, {
             secret: this.configService.get<string>('JWT_SECRET'),
@@ -100,6 +106,15 @@ export class AuthService {
             expiresIn: 604800, // 7 days in seconds
         });
 
-        return { accessToken, refreshToken };
+        return {
+            accessToken,
+            refreshToken,
+            user: {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                createdAt: user.createdAt,
+            },
+        };
     }
 }
